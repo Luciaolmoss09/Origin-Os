@@ -18,6 +18,7 @@ import {
   X,
   Zap,
   Brain,
+  CreditCard,
 } from "lucide-react"
 import type {
   Project,
@@ -42,6 +43,7 @@ import { simulateApiSync } from "@/lib/actions/ingestion"
 import { useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
+import { createCheckoutSession } from "@/lib/actions/stripe-checkout"
 
 type ProjectWithRelations = Project & {
   client: Client
@@ -88,6 +90,7 @@ export default function ProjectDetailClient({
   const [newTaskTitle, setNewTaskTitle] = useState("")
   const [newTaskUrl, setNewTaskUrl] = useState("")
   const [loading, setLoading] = useState(false)
+  const [stripeLoading, setStripeLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
   const router = useRouter()
@@ -139,6 +142,22 @@ export default function ProjectDetailClient({
       setError(res.error || "Error al avanzar fase")
     }
     setLoading(false)
+  }
+
+  async function handleGenerateCheckout() {
+    setStripeLoading(true)
+    const res = await createCheckoutSession({
+      projectName: project.name,
+      clientEmail: `contacto@origin.com`, 
+      priceAmount: 300000 
+    })
+    
+    if (res.success && res.url) {
+      window.location.href = res.url
+    } else {
+      setError("Error al generar link de pago: " + res.error)
+    }
+    setStripeLoading(false)
   }
 
   async function handleToggleTask(taskId: string, currentStatus: any) {
@@ -254,6 +273,16 @@ export default function ProjectDetailClient({
             <Plus className="w-4 h-4" />
             Añadir Tarea
           </button>
+          {project.status === "activo" && (
+            <button 
+              onClick={handleGenerateCheckout}
+              disabled={stripeLoading}
+              className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-6 py-3.5 rounded-2xl font-bold text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-slate-900/10 disabled:opacity-50"
+            >
+              <CreditCard className="w-4 h-4" />
+              {stripeLoading ? "Generando..." : "Cobrar (3K€)"}
+            </button>
+          )}
           <button 
             onClick={handleAdvancePhase}
             disabled={loading}

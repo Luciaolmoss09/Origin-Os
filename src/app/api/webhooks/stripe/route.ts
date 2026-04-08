@@ -1,57 +1,49 @@
-export const dynamic = "force-dynamic";
-
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
-import Stripe from "stripe";
+import { stripe } from "@/lib/stripe";
 import { activateClientProject } from "@/lib/actions/onboarding";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_placeholder", {
-  apiVersion: "2024-06-20" as any,
-});
-
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+import Stripe from "stripe";
 
 export async function POST(req: Request) {
   const body = await req.text();
-  const signature = (await headers()).get("stripe-signature") as string;
+  const signature = headers().get("Stripe-Signature") as string;
 
   let event: Stripe.Event;
 
   try {
-    if (!signature || !webhookSecret) {
-      console.error("Missing Stripe signature or webhook secret");
-      return new NextResponse("Webhook Secret Missing", { status: 400 });
+    event = stripe.webhooks.constructEvent(
+      body,
+      signature,
+      process.env.STRIPE_WEBHOOK_SECRET!
+    );
+  } catch (error: any) {
+    console.error("⚠️ Error de firma del Webhook:", error.message);
+    return new NextResponse(`Webhook Error: ${error.message}`, { status: 400 });
+  }
+
+  const session = event.data.object as Stripe.Checkout.Session;
+
+  if (event.type === "checkout.session.completed") {
+    console.log("💰 ¡Pago Completado Recibido!", session.id);
+
+    // Retrieve metadata we passed when creating the checkout session
+    const clientEmail = session.customer_details?.email;
+    const clientName = session.customer_details?.name || "Client";
+    const projectName = session.metadata?.projectName || "Lanzamiento Digital";
+    const clientId = session.metadata?.clientId; // Optional
+
+    if (clientEmail) {
+      // Disparar toda la automatización de Origin
+      await activateClientProject({
+        email: clientEmail,
+        name: clientName,
+        projectName: projectName,
+        launchType: "Premium",
+        clientId: clientId
+      });
+      console.log("🚀 Motor de Origin activado exitosamente para:", clientEmail);
     }
-    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-  } catch (err: any) {
-    console.error(`Webhook signature verification failed: ${err.message}`);
-    return new NextResponse(`Webhook Error: ${err.message}`, { status: 400 });
   }
 
-  // Handle the event
-  switch (event.type) {
-    case "checkout.session.completed":
-      const session = event.data.object as Stripe.Checkout.Session;
-      
-      // Extract data from session metadata or customer details
-      const email = session.customer_details?.email;
-      const name = session.customer_details?.name;
-      const projectName = session.metadata?.projectName || "Nuevo Proyecto";
-
-      if (email && name) {
-        console.log(`PAGO RECIBIDO: Activando proyecto para ${email}`);
-        await activateClientProject({
-          email,
-          name,
-          projectName,
-          launchType: "express_15_dias", // Default or from metadata
-        });
-      }
-      break;
-    
-    default:
-      console.log(`Unhandled event type ${event.type}`);
-  }
-
-  return new NextResponse(null, { status: 200 });
+  return new NextResponse("OK", { status: 200 });
 }
