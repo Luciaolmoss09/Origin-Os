@@ -1,0 +1,852 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── ENUMS ────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  admin
+  client
+  editor
+  setter
+  closer
+  media_buyer
+  financial_advisor
+}
+
+enum ClientStatus {
+  activo
+  en_pausa
+  completado
+  cancelado
+}
+
+enum ProjectPhase {
+  fase_1
+  fase_2
+  fase_3
+  fase_4
+  fase_5
+  fase_6
+  fase_7
+  fase_8
+}
+
+enum ProjectStatus {
+  activo
+  pausado
+  completado
+  cancelado
+}
+
+enum PhaseStatus {
+  pendiente
+  activa
+  completada
+  pausada
+}
+
+enum LaunchType {
+  a_definir
+  express_15_dias
+  webinar
+  masterclass
+  challenge
+  dm_launch
+  evergreen
+  hybrid
+}
+
+enum ModuleKey {
+  ads
+  community
+  webinar
+  challenge
+  evergreen
+  setter
+  closer
+  media_buyer
+}
+
+enum LinkType {
+  client
+  collaborator
+}
+
+enum LinkStatus {
+  pending
+  sent
+  registered
+  paid
+  active
+}
+
+enum StrategyStatus {
+  pendiente
+  en_revision
+  aprobada
+}
+
+enum TaskStatus {
+  pendiente
+  en_progreso
+  completada
+  bloqueada
+}
+
+enum TaskPriority {
+  baja
+  media
+  alta
+  critica
+}
+
+enum TaskVisibility {
+  internal_only
+  client_visible
+  editor_visible
+}
+
+enum MeetingStatus {
+  programada
+  realizada
+  cancelada
+  reagendada
+}
+
+enum ContentType {
+  reel
+  story
+  carrusel
+  post
+  copy
+  email
+  script
+}
+
+enum ContentStatus {
+  borrador
+  en_revision
+  aprobado
+  publicado
+}
+
+enum CopyChannel {
+  stories
+  dm
+  whatsapp
+  email
+  landing
+  vsl
+}
+
+enum PipelineStatus {
+  nuevo
+  contactado
+  calificado
+  propuesta
+  cerrado_ganado
+  cerrado_perdido
+}
+
+enum CallStatus {
+  programada
+  realizada
+  no_show
+  cancelada
+}
+
+enum PaymentStatus {
+  pendiente
+  cobrado
+  vencido
+  parcial
+}
+
+enum InvoiceStatus {
+  pendiente
+  pagada
+  vencida
+  cancelada
+}
+
+enum ContractType {
+  cliente
+  colaborador
+  servicio
+}
+
+enum ContractStatus {
+  pendiente
+  firmado
+  cancelado
+}
+
+enum SuggestionStatus {
+  pendiente
+  aprobada
+  rechazada
+  ejecutada
+}
+
+enum InsightStatus {
+  pendiente
+  aprobado
+  implementado
+  descartado
+}
+
+enum KnowledgeCategory {
+  framework
+  guia
+  plantilla
+  objecion
+  sop
+  playbook
+  script
+}
+
+// ─── USERS & ACCESS ──────────────────────────────────────────────────────────
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  password        String?
+  name            String?
+  passwordHash    String?
+  role            UserRole
+  status          String    @default("active")
+  timezone        String    @default("Europe/Madrid")
+  language        String    @default("es")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  workspaceAccess         WorkspaceAccess[]
+  collaboratorProfile     CollaboratorPaymentProfile?
+  createdActivationLinks  ActivationLink[]   @relation("CreatedLinks")
+  receivedActivationLinks ActivationLink[]   @relation("TargetLinks")
+}
+
+model WorkspaceAccess {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  accessType String
+  projectId  String?
+  project    Project? @relation(fields: [projectId], references: [id])
+  clientId   String?
+  client     Client?  @relation(fields: [clientId], references: [id])
+  roleScope  String?
+  mode       String   @default("limited")
+  status     String   @default("active")
+  createdAt  DateTime @default(now())
+}
+
+model ActivationLink {
+  id                String     @id @default(cuid())
+  token             String     @unique @default(cuid())
+  email             String?
+  name              String?
+  linkType          LinkType
+  targetUserId      String?
+  targetUser        User?      @relation("TargetLinks", fields: [targetUserId], references: [id])
+  roleAssigned      UserRole
+  projectId         String?
+  project           Project?   @relation(fields: [projectId], references: [id])
+  clientId          String?
+  client            Client?    @relation(fields: [clientId], references: [id])
+  paymentLinkUrl    String?
+  linkStatus        LinkStatus @default(pending)
+  expiresAt         DateTime?
+  sentAt            DateTime?
+  registeredAt      DateTime?
+  paidAt            DateTime?
+  accessActivatedAt DateTime?
+  createdById       String
+  createdBy         User       @relation("CreatedLinks", fields: [createdById], references: [id])
+  createdAt         DateTime   @default(now())
+}
+
+model CollaboratorPaymentProfile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id])
+  accountHolderName String
+  bankName          String
+  accountNumber     String
+  accountType       String
+  currency          String   @default("EUR")
+  additionalNotes   String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// ─── CLIENTS & PROJECTS ───────────────────────────────────────────────────────
+
+model Client {
+  id                   String          @id @default(cuid())
+  displayName          String
+  brandName            String?
+  email                String?
+  phone                String?
+  instagram            String?
+  primaryContactUserId String?
+  niche                String
+  status               ClientStatus    @default(activo)
+  createdAt            DateTime        @default(now())
+
+  projects        Project[]
+  activationLinks ActivationLink[]
+  workspaceAccess WorkspaceAccess[]
+}
+
+model Project {
+  id               String        @id @default(cuid())
+  clientId         String
+  client           Client        @relation(fields: [clientId], references: [id])
+  name             String
+  launchType       LaunchType
+  mechanismType    String?
+  status           ProjectStatus @default(activo)
+  currentPhase     ProjectPhase  @default(fase_1)
+  currentDayNumber Int           @default(1)
+  targetSales      Int           @default(0)
+  actualSales      Int           @default(0)
+  startDate        DateTime
+  closeDate        DateTime?
+  contractUrl      String?       @db.Text
+  closureReport    String?       @db.Text
+  createdAt        DateTime      @default(now())
+
+  modules            ProjectModule[]
+  phaseInstances     PhaseInstance[]
+  tasks              Task[]
+  meetings           Meeting[]
+  content            ContentPiece[]
+  editorialItems     EditorialCalendarItem[]
+  copyBlocks         CopyBlock[]
+  assetVersions      AssetVersion[]
+  communitySpaces    CommunitySpace[]
+  pipeline           LeadPipelineEntry[]
+  salesCalls         SalesCall[]
+  objections         ObjectionPattern[]
+  contracts          Contract[]
+  invoices           Invoice[]
+  payments           Payment[]
+  paymentProjections PaymentProjection[]
+  strategicProfile   StrategicProfile?
+  suggestions        AgentSuggestion[]
+  learningInsights   LearningInsight[]
+  metrics            MetricsSnapshot[]
+  activationLinks    ActivationLink[]
+  workspaceAccess    WorkspaceAccess[]
+  
+  financialEntries   FinancialEntry[]
+  adsCampaigns       AdsCampaign[]
+  externalResources  ExternalResource[]
+  caseMemory         InternalCaseMemory?
+}
+
+model ProjectModule {
+  id          String    @id @default(cuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id])
+  moduleKey   ModuleKey
+  status      String    @default("inactive")
+  activatedBy String?
+  activatedAt DateTime?
+}
+
+model PhaseInstance {
+  id        String       @id @default(cuid())
+  projectId String
+  project   Project      @relation(fields: [projectId], references: [id])
+  phaseKey  ProjectPhase
+  status    PhaseStatus  @default(pendiente)
+  dayStart  Int?
+  dayEnd    Int?
+  startedAt DateTime?
+}
+
+// ─── STRATEGY ────────────────────────────────────────────────────────────────
+
+model StrategicProfile {
+  id               String         @id @default(cuid())
+  projectId        String         @unique
+  project          Project        @relation(fields: [projectId], references: [id])
+  strategyStatus   StrategyStatus @default(pendiente)
+  thesisSummary    String?        @db.Text
+  mechanismSummary String?        @db.Text
+  launchAngle      String?        @db.Text
+  clientDescription String?       @db.Text
+  viabilityDiagnosis String?      @db.Text
+
+  offer               Offer?
+  avatar              Avatar?
+  narrative           Narrative?
+  personalityProfile  PersonalityProfile?
+  custDevSessions     CustomerDevelopmentSession[]
+  competitorAnalyses  CompetitorAnalysis[]
+}
+
+model InternalCaseMemory {
+  id                   String   @id @default(cuid())
+  projectId            String   @unique
+  project              Project  @relation(fields: [projectId], references: [id])
+  closingTranscription String?  @db.Text
+  caseSummary          String?  @db.Text
+  detectedObjections   String?  @db.Text
+  agreedConditions     String?  @db.Text
+  internalNotes        String?  @db.Text
+  internalFolderUrl    String?  @db.Text
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model Offer {
+  id                 String           @id @default(cuid())
+  strategicProfileId String           @unique
+  strategicProfile   StrategicProfile @relation(fields: [strategicProfileId], references: [id])
+  name               String
+  problemSolved      String?          @db.Text
+  desiredResult      String?          @db.Text
+  promise            String?          @db.Text
+  mechanism          String?          @db.Text
+  format             String?
+  price              Float?
+}
+
+model Avatar {
+  id                 String           @id @default(cuid())
+  strategicProfileId String           @unique
+  strategicProfile   StrategicProfile @relation(fields: [strategicProfileId], references: [id])
+  avatarName         String
+  currentPain        String?          @db.Text
+  desiredState       String?          @db.Text
+  objections         String?          @db.Text
+  languagePatterns   String?          @db.Text
+  buyingTriggers     String?          @db.Text
+}
+
+model Narrative {
+  id                 String           @id @default(cuid())
+  strategicProfileId String           @unique
+  strategicProfile   StrategicProfile @relation(fields: [strategicProfileId], references: [id])
+  bigIdea            String?          @db.Text
+  coreProblem        String?          @db.Text
+  newBelief          String?          @db.Text
+  mechanismStory     String?          @db.Text
+  proofDirection     String?          @db.Text
+  toneSummary        String?
+}
+
+model PersonalityProfile {
+  id                 String           @id @default(cuid())
+  strategicProfileId String           @unique
+  strategicProfile   StrategicProfile @relation(fields: [strategicProfileId], references: [id])
+  expertStyle        String?
+  voiceNotes         String?          @db.Text
+  storyAssets        String?          @db.Text
+  authorityStyle     String?
+  humorLevel         String?
+  energyProfile      String?
+}
+
+model CustomerDevelopmentSession {
+  id                 String           @id @default(cuid())
+  strategicProfileId String
+  strategicProfile   StrategicProfile @relation(fields: [strategicProfileId], references: [id])
+  intervieweeType    String
+  callDate           DateTime
+  painSummary        String?          @db.Text
+  desireSummary      String?          @db.Text
+  objectionSummary   String?          @db.Text
+  languageSummary    String?          @db.Text
+  mvpSignal          String?
+  createdAt          DateTime         @default(now())
+}
+
+model CompetitorAnalysis {
+  id                 String           @id @default(cuid())
+  strategicProfileId String
+  strategicProfile   StrategicProfile @relation(fields: [strategicProfileId], references: [id])
+  competitorName     String
+  offerSummary       String?          @db.Text
+  positioningSummary String?          @db.Text
+  mechanismSummary   String?          @db.Text
+  priceSummary       String?
+  opportunityGap     String?          @db.Text
+  createdAt          DateTime         @default(now())
+}
+
+// ─── TASKS & MEETINGS ────────────────────────────────────────────────────────
+
+model Task {
+  id          String         @id @default(cuid())
+  projectId   String
+  project     Project        @relation(fields: [projectId], references: [id])
+  phaseKey    ProjectPhase
+  taskType    String?
+  title       String
+  description String?        @db.Text
+  ownerUserId String?
+  visibility  TaskVisibility @default(internal_only)
+  status      TaskStatus     @default(pendiente)
+  priority    TaskPriority   @default(media)
+  dueDate     DateTime?
+  url         String?
+  completedAt DateTime?
+  createdAt   DateTime       @default(now())
+}
+
+model Meeting {
+  id          String        @id @default(cuid())
+  projectId   String
+  project     Project       @relation(fields: [projectId], references: [id])
+  meetingType String
+  scheduledAt DateTime
+  status      MeetingStatus @default(programada)
+  visibility  TaskVisibility @default(internal_only)
+  url         String?
+  targetRole  UserRole?
+  notes       String?       @db.Text
+  summary     String?       @db.Text
+  createdAt   DateTime      @default(now())
+}
+
+// ─── CONTENT ─────────────────────────────────────────────────────────────────
+
+model ContentPiece {
+  id          String        @id @default(cuid())
+  projectId   String
+  project     Project       @relation(fields: [projectId], references: [id])
+  phaseKey    ProjectPhase
+  contentType ContentType
+  title       String
+  hook        String?       @db.Text
+  coreMessage String?       @db.Text
+  cta         String?
+  notes       String?       @db.Text
+  ownerUserId String?
+  status      ContentStatus @default(borrador)
+  dueDate     DateTime?
+  createdAt   DateTime      @default(now())
+}
+
+model EditorialCalendarItem {
+  id           String       @id @default(cuid())
+  projectId    String
+  project      Project      @relation(fields: [projectId], references: [id])
+  calendarDate DateTime
+  pieceType    String
+  pieceId      String?
+  phaseKey     ProjectPhase
+  dayNumber    Int
+  status       String       @default("pendiente")
+  createdAt    DateTime     @default(now())
+}
+
+model CopyBlock {
+  id        String      @id @default(cuid())
+  projectId String
+  project   Project     @relation(fields: [projectId], references: [id])
+  blockType String
+  channel   CopyChannel
+  copyText  String      @db.Text
+  status    String      @default("borrador")
+  createdAt DateTime    @default(now())
+}
+
+model AssetVersion {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id])
+  assetType   String
+  version     Int      @default(1)
+  assetStatus String   @default("borrador")
+  fileUrl     String?
+  createdById String?
+  createdAt   DateTime @default(now())
+}
+
+// ─── COMMUNITY & SALES ───────────────────────────────────────────────────────
+
+model CommunitySpace {
+  id            String   @id @default(cuid())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id])
+  platform      String
+  communityName String
+  status        String   @default("inactive")
+  entryLink     String?
+  createdAt     DateTime @default(now())
+}
+
+model LeadPipelineEntry {
+  id             String         @id @default(cuid())
+  projectId      String
+  project        Project        @relation(fields: [projectId], references: [id])
+  leadName       String
+  contactChannel String
+  temperature    String         @default("frio")
+  status         PipelineStatus @default(nuevo)
+  ownerUserId    String?
+  notes          String?        @db.Text
+  saleAmount     Float?
+  objection      String?        @db.Text
+  forRetargeting Boolean        @default(false)
+  closedAt       DateTime?
+  createdAt      DateTime       @default(now())
+  salesCalls     SalesCall[]
+}
+
+model SalesCall {
+  id              String             @id @default(cuid())
+  projectId       String
+  project         Project            @relation(fields: [projectId], references: [id])
+  pipelineEntryId String?
+  pipelineEntry   LeadPipelineEntry? @relation(fields: [pipelineEntryId], references: [id])
+  callDate        DateTime
+  status          CallStatus         @default(programada)
+  outcome         String?
+  notes           String?            @db.Text
+  assignedTo      String?
+  createdAt       DateTime           @default(now())
+}
+
+model ObjectionPattern {
+  id                String   @id @default(cuid())
+  projectId         String
+  project           Project  @relation(fields: [projectId], references: [id])
+  objectionKey      String
+  objectionText     String   @db.Text
+  frequency         Int      @default(1)
+  responseFramework String?  @db.Text
+  createdAt         DateTime @default(now())
+}
+
+// ─── FINANCE & CONTRACTS ─────────────────────────────────────────────────────
+
+model Contract {
+  id           String         @id @default(cuid())
+  projectId    String
+  project      Project        @relation(fields: [projectId], references: [id])
+  relatedType  String
+  relatedId    String
+  contractType ContractType
+  status       ContractStatus @default(pendiente)
+  signedAt     DateTime?
+  pdfUrl       String?
+  createdAt    DateTime       @default(now())
+}
+
+model Invoice {
+  id            String        @id @default(cuid())
+  projectId     String
+  project       Project       @relation(fields: [projectId], references: [id])
+  clientId      String?
+  invoiceNumber String        @unique
+  invoiceType   String
+  amount        Float
+  status        InvoiceStatus @default(pendiente)
+  issuedAt      DateTime      @default(now())
+  dueAt         DateTime?
+  payments      Payment[]
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  projectId     String
+  project       Project       @relation(fields: [projectId], references: [id])
+  invoiceId     String?
+  invoice       Invoice?      @relation(fields: [invoiceId], references: [id])
+  paymentMethod String?
+  amount        Float
+  status        PaymentStatus @default(pendiente)
+  concept       String
+  paidAt        DateTime?
+  dueDate       DateTime?
+  createdAt     DateTime      @default(now())
+}
+
+model PaymentProjection {
+  id              String   @id @default(cuid())
+  projectId       String
+  project         Project  @relation(fields: [projectId], references: [id])
+  projectionType  String
+  projectedAmount Float
+  basisSummary    String?  @db.Text
+  createdAt       DateTime @default(now())
+}
+
+// ─── FINANCE, ADS & TAXES (SENIOR LAYER) ──────────────────────────────────────
+
+enum FinancialType {
+  ingreso
+  gasto
+}
+
+enum TaxType {
+  iva
+  irpf
+  cuota_autonomo
+  otro
+}
+
+model FinancialEntry {
+  id              String        @id @default(cuid())
+  projectId       String?
+  project         Project?       @relation(fields: [projectId], references: [id])
+  type            FinancialType
+  concept         String
+  baseAmount      Float
+  ivaPercentage   Float          @default(21)
+  ivaAmount       Float
+  irpfPercentage  Float          @default(15)
+  irpfAmount      Float
+  totalAmount     Float
+  category        String?        // Ej: herramientas, gestoria, ads
+  date            DateTime       @default(now())
+  paidAt          DateTime?
+  attachmentUrl   String?        // Link a la factura (Drive/S3)
+  createdAt       DateTime       @default(now())
+}
+
+model TaxDeadline {
+  id              String        @id @default(cuid())
+  title           String        // Ej: Trimestre 1 - IVA
+  taxType         TaxType
+  dueDate         DateTime
+  isCompleted     Boolean       @default(false)
+  estimatedAmount Float?
+  notes           String?
+  createdAt       DateTime       @default(now())
+}
+
+model AdsCampaign {
+  id              String        @id @default(cuid())
+  projectId       String
+  project         Project       @relation(fields: [projectId], references: [id])
+  platform        String        // Ej: Meta, Google, TikTok
+  name            String
+  status          String        @default("activa")
+  dailyBudget     Float?
+  startDate       DateTime?
+  endDate         DateTime?
+  
+  metrics         AdsMetric[]
+}
+
+model AdsMetric {
+  id              String        @id @default(cuid())
+  campaignId      String
+  campaign        AdsCampaign   @relation(fields: [campaignId], references: [id])
+  date            DateTime
+  spend           Float
+  impressions     Int?
+  clicks          Int?
+  leads           Int?
+  sales           Int?
+  revenue         Float?
+  createdAt       DateTime       @default(now())
+}
+
+model ExternalResource {
+  id              String        @id @default(cuid())
+  projectId       String
+  project         Project       @relation(fields: [projectId], references: [id])
+  phaseKey        ProjectPhase?
+  title           String
+  url             String
+  resourceType    String?       // Ej: Drive, Loom, Transcripción
+  notes           String?       @db.Text
+  createdAt       DateTime       @default(now())
+}
+
+// ─── KNOWLEDGE, IA & LEARNING ────────────────────────────────────────────────
+
+model KnowledgeDocument {
+  id             String            @id @default(cuid())
+  title          String
+  category       KnowledgeCategory
+  sourcePath     String?
+  content        String            @db.Text
+  tags           String[]
+  status         String            @default("active")
+  lastReviewedAt DateTime?
+  updatedAt      DateTime          @updatedAt
+}
+
+model SystemConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @db.Text
+  category  String   @default("general")
+  updatedAt DateTime @updatedAt
+}
+
+model SopItem {
+  id             String        @id @default(cuid())
+  sopArea        String
+  sopName        String
+  phaseKey       ProjectPhase?
+  stepOrder      Int
+  stepText       String        @db.Text
+  visibleForRole String?
+  status         String        @default("activo")
+  createdAt      DateTime      @default(now())
+}
+
+model AgentSuggestion {
+  id             String           @id @default(cuid())
+  projectId      String?
+  project        Project?         @relation(fields: [projectId], references: [id])
+  agentKey       String
+  suggestionType String
+  summary        String           @db.Text
+  proposedAction String?          @db.Text
+  approvalStatus SuggestionStatus @default(pendiente)
+  createdAt      DateTime         @default(now())
+}
+
+model LearningInsight {
+  id                String        @id @default(cuid())
+  projectId         String?
+  project           Project?      @relation(fields: [projectId], references: [id])
+  insightType       String
+  patternDetected   String        @db.Text
+  recommendedChange String?       @db.Text
+  status            InsightStatus @default(pendiente)
+  createdAt         DateTime      @default(now())
+}
+
+model MetricsSnapshot {
+  id             String   @id @default(cuid())
+  projectId      String
+  project        Project  @relation(fields: [projectId], references: [id])
+  date           DateTime
+  igFollowers    Int?
+  igReach        Int?
+  igEngagement   Float?
+  whatsappLeads  Int?
+  callsBooked    Int?
+  callsHeld      Int?
+  conversionRate Float?
+  revenue        Float?
+  createdAt      DateTime @default(now())
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  message     String
+  type        String   @default("info")
+  isRead      Boolean  @default(false)
+  link        String?
+  createdAt   DateTime @default(now())
+}

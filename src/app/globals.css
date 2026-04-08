@@ -1,26 +1,52 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui;
+  --font-display: var(--font-playfair), serif;
+  
+  --color-origin-black: #0F172A; /* Deep Navy Black */
+  --color-origin-white: #FFFFFF;
+  --color-origin-gray-50: #F8FAFC;
+  --color-origin-gray-100: #F1F5F9;
+  --color-origin-gray-200: #E2E8F0;
+  --color-origin-accent: #000000;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  body {
+    @apply antialiased text-slate-900 bg-white/50;
+    font-feature-settings: "ss01", "ss02", "cv01", "cv11";
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  .glass-sidebar {
+    @apply bg-white/40 backdrop-blur-3xl border-r border-slate-200/50;
+  }
+  
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-md border border-slate-200/20 shadow-sm rounded-[2rem];
+  }
+
+  .metallic-card {
+    @apply bg-gradient-to-br from-white via-slate-50/50 to-slate-200/30 
+           backdrop-blur-xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)]
+           relative overflow-hidden rounded-[2.5rem];
+    /* Subtle 3D inner reflection */
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.8), 0 10px 40px rgba(0, 0, 0, 0.03);
+  }
+  
+  .btn-primary {
+    @apply bg-slate-900 text-white px-8 py-3.5 rounded-2xl font-bold transition-all 
+           hover:bg-black hover:shadow-lg active:scale-95 flex items-center justify-center;
+  }
+  
+  .btn-secondary {
+    @apply bg-white text-slate-800 px-8 py-3.5 rounded-2xl font-bold border border-slate-100 
+           shadow-sm transition-all hover:bg-slate-50 active:scale-95;
+  }
+
+  .luxury-text {
+    @apply font-display tracking-tight leading-tight;
+  }
 }
