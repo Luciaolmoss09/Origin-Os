@@ -92,35 +92,30 @@ export default function DashboardClient({ userName, stats, activeProjects, pendi
           </div>
         </div>
 
-        {/* Global Agency Status - Improved Contrast */}
+        {/* Global Agency Status - Clean State */}
         <div className="metallic-card p-10 bg-white/80 backdrop-blur-xl border-slate-200/50 flex flex-col justify-between shadow-xl">
            <div className="relative z-10">
               <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] mb-10">Estado Global Agency</h3>
               <div className="space-y-10">
                  <div>
                     <span className="text-xs font-bold text-slate-400 uppercase block mb-2">ROAS Promedio Trimestral</span>
-                    <p className="text-5xl font-sans font-bold text-slate-900 luxury-text italic">x4.82</p>
+                    <p className="text-3xl font-sans font-bold text-slate-300 italic">--.--</p>
                  </div>
                  <div className="space-y-3">
                     <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest">
                        <span className="text-slate-400">Objetivo Facturación</span>
-                       <span className="text-blue-600 font-mono">82%</span>
+                       <span className="text-slate-400 font-mono">%</span>
                     </div>
                     <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner">
-                       <motion.div 
-                        initial={{ width: 0 }}
-                        animate={{ width: "82%" }}
-                        transition={{ duration: 1.5, ease: "easeOut" }}
-                        className="h-full bg-blue-500 rounded-full shadow-[0_0_15px_rgba(59,130,246,0.3)]" 
-                       />
+                       <div className="h-full bg-slate-300 w-0" />
                     </div>
                  </div>
               </div>
            </div>
            
            <div className="pt-10 mt-10 border-t border-slate-100 relative z-10">
-              <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                Tu margen operativo ha subido un <span className="text-emerald-600 font-bold">12%</span> tras la automatización de la Fase de Prospección.
+              <p className="text-xs text-slate-400 leading-relaxed font-medium">
+                Añade tu primera campaña en Finanzas para proyectar el rendimiento operativo.
               </p>
            </div>
         </div>

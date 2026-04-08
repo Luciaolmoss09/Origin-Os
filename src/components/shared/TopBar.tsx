@@ -32,30 +32,25 @@ export default function TopBar() {
           </span>
         </div>
 
-        {/* Notification Bell with Mock Dropdown */}
+        {/* Notification Bell */}
         <div className="relative group">
           <button className="p-2.5 bg-slate-50 rounded-full hover:bg-slate-100 transition-all relative">
             <Bell className="w-5 h-5 text-slate-600" />
-            <div className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
+            {/* El punto rojo solo se mostrará cuando haya notificaciones reales en el futuro */}
           </button>
           
-          {/* Simple Dropdown - Mock */}
+          {/* Dropdown - Empty State */}
           <div className="absolute right-0 mt-3 w-80 glass-card p-4 shadow-xl opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-200">
             <h4 className="font-bold text-sm mb-4">Notificaciones</h4>
             <div className="space-y-4">
-              <div className="text-xs p-3 bg-blue-50 rounded-xl border border-blue-100">
-                <p className="font-bold text-blue-700">¡Nuevo Pago Recibido!</p>
-                <p className="text-blue-600/70 mt-1">Lanzamiento Master Express ha sido activado.</p>
-                <p className="text-[10px] mt-2 text-blue-400">Hace 5 minutos</p>
-              </div>
-              <div className="text-xs p-3 bg-slate-50 rounded-xl border border-slate-100">
-                <p className="font-bold text-slate-700">Métrica de Ads Pendiente</p>
-                <p className="text-slate-500 mt-1">El Media Buyer aún no ha reportado el gasto de ayer.</p>
-                <p className="text-[10px] mt-2 text-slate-400">Hace 2 horas</p>
+              <div className="metallic-card p-6 flex flex-col items-center justify-center text-center">
+                 <Bell className="w-6 h-6 text-slate-300 mb-2" />
+                 <p className="text-xs font-bold text-slate-400">Todo al día</p>
+                 <p className="text-[10px] text-slate-400 mt-1">No hay alertas operativas nuevas.</p>
               </div>
             </div>
             <button className="w-full text-center text-xs font-bold text-slate-400 mt-4 hover:text-black transition-colors">
-              Marcar todas como leídas
+              Ir a ajustes de notificaciones
             </button>
           </div>
         </div>
