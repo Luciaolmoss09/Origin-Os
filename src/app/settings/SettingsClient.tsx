@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { 
   Settings, 
@@ -20,6 +20,7 @@ import {
   X
 } from "lucide-react"
 import { inviteCollaborator } from "@/lib/actions/team"
+import { useSession } from "next-auth/react"
 
 interface SettingsClientProps {
   initialSettings: Record<string, string>
@@ -41,6 +42,14 @@ export default function SettingsClient({ initialSettings, stats }: SettingsClien
   const [inviteData, setInviteData] = useState({ email: "", name: "", role: "editor" })
   const [inviting, setInviting] = useState(false)
 
+  // Profile Edit State
+  const { data: session, update: updateSession } = useSession()
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false)
+  const [profileData, setProfileData] = useState({ name: session?.user?.name || "Lucía Olmos", password: "", confirmPassword: "" })
+  const [avatar, setAvatar] = useState<string | null>(session?.user?.image || null)
+  const [savingProfile, setSavingProfile] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault()
     setInviting(true)
@@ -60,6 +69,43 @@ export default function SettingsClient({ initialSettings, stats }: SettingsClien
       setError("Error de red al invitar")
     } finally {
       setInviting(false)
+    }
+  }
+
+  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => setAvatar(ev.target?.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  async function handleSaveProfile(e: React.FormEvent) {
+    e.preventDefault()
+    if (profileData.password && profileData.password !== profileData.confirmPassword) {
+      setError("Las contraseñas no coinciden")
+      return
+    }
+    setSavingProfile(true)
+    setError(null)
+    try {
+      const res = await fetch("/api/admin/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: profileData.name, password: profileData.password || undefined, avatar })
+      })
+      const data = await res.json()
+      if (data.success) {
+        await updateSession({ name: profileData.name, image: avatar })
+        setSuccess("Perfil actualizado correctamente.")
+        setIsEditProfileOpen(false)
+      } else {
+        setError(data.error || "Error al guardar perfil")
+      }
+    } catch {
+      setError("Error de conexión")
+    } finally {
+      setSavingProfile(false)
     }
   }
 
@@ -359,7 +405,10 @@ export default function SettingsClient({ initialSettings, stats }: SettingsClien
                       </span>
                     </td>
                     <td className="px-8 py-6 text-right">
-                      <button className="text-[10px] font-bold text-slate-400 uppercase hover:text-slate-900">Editar</button>
+                      <button 
+                        onClick={() => setIsEditProfileOpen(true)}
+                        className="text-[10px] font-bold text-blue-600 uppercase hover:text-blue-800 transition-colors"
+                      >Editar</button>
                     </td>
                   </tr>
                 </tbody>
@@ -512,6 +561,102 @@ export default function SettingsClient({ initialSettings, stats }: SettingsClien
                     className="w-full bg-slate-900 text-white py-5 rounded-2xl font-bold uppercase tracking-widest text-[10px] shadow-xl shadow-slate-900/10 hover:translate-y-[-2px] active:scale-95 transition-all disabled:opacity-50"
                   >
                     {inviting ? "Enviando..." : "Enviar Invitación Directa"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ======= PROFILE EDIT MODAL ======= */}
+      <AnimatePresence>
+        {isEditProfileOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
+              onClick={() => setIsEditProfileOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative z-10 bg-white rounded-[2.5rem] shadow-2xl p-10 w-full max-w-lg"
+            >
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-2xl font-display font-bold italic luxury-text">Editar Perfil</h2>
+                <button onClick={() => setIsEditProfileOpen(false)} className="p-2 hover:bg-slate-50 rounded-2xl transition-all">
+                  <X className="w-5 h-5 text-slate-400" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveProfile} className="space-y-6">
+                {/* Avatar Upload */}
+                <div className="flex items-center gap-6">
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-20 h-20 rounded-3xl bg-slate-100 border-2 border-dashed border-slate-200 flex items-center justify-center cursor-pointer hover:bg-slate-50 transition-all overflow-hidden group"
+                  >
+                    {avatar ? (
+                      <img src={avatar} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="text-center">
+                        <span className="text-3xl font-bold text-slate-300 group-hover:text-slate-400 transition-colors block">
+                          {(profileData.name || session?.user?.name || "LU").substring(0,2).toUpperCase()}
+                        </span>
+                        <span className="text-[9px] text-slate-300 font-bold uppercase">Subir</span>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-900">Foto de Perfil</p>
+                    <p className="text-[10px] text-slate-400 mt-1">Haz clic en el avatar para subir imagen.</p>
+                    <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+                  </div>
+                </div>
+
+                {/* Name */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Nombre Completo</label>
+                  <input
+                    type="text"
+                    value={profileData.name}
+                    onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                    className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-slate-900/5 transition-all"
+                  />
+                </div>
+
+                {/* Password */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Nueva Contraseña (opcional)</label>
+                  <input
+                    type="password"
+                    placeholder="Dejar vacío para no cambiar"
+                    value={profileData.password}
+                    onChange={(e) => setProfileData({ ...profileData, password: e.target.value })}
+                    className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-slate-900/5 transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Confirmar Contraseña</label>
+                  <input
+                    type="password"
+                    placeholder="Repetir nueva contraseña"
+                    value={profileData.confirmPassword}
+                    onChange={(e) => setProfileData({ ...profileData, confirmPassword: e.target.value })}
+                    className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-sm outline-none focus:ring-4 focus:ring-slate-900/5 transition-all"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button type="button" onClick={() => setIsEditProfileOpen(false)} className="flex-1 py-4 bg-slate-100 text-slate-900 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all">
+                    Cancelar
+                  </button>
+                  <button type="submit" disabled={savingProfile} className="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl disabled:opacity-50">
+                    {savingProfile ? "Guardando..." : "Guardar Cambios"}
                   </button>
                 </div>
               </form>

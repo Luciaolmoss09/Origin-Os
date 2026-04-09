@@ -238,7 +238,7 @@ export default function PortalClient({
               ) : (
                 <div className="flex items-center gap-2 px-5 py-2 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full text-xs font-bold">
                   <CheckCircle2 className="w-3.5 h-3.5 animate-pulse" />
-                  Trayectoria en Curso
+                  Trayectoria de Conversión en Curso
                 </div>
               )}
             </div>
@@ -786,22 +786,57 @@ export default function PortalClient({
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+            className="space-y-12"
           >
-            {[
-              { title: "GOOGLE DRIVE ASSETS", desc: "TODA TU DOCUMENTACIÓN", icon: Cloud, color: "text-blue-500" },
-              { title: "RECURSOS VARIOS", desc: "DOCUMENTOS EXTRA", icon: Rocket, color: "text-slate-900" },
-              { title: "MATERIAL DE MARCA", desc: "ACTIVOS COMPARTIDOS", icon: Link2, color: "text-emerald-500" },
-              { title: "CENTRO DE SOPORTE", desc: "CONSULTAS DIRECTAS", icon: Zap, color: "text-blue-400" },
-            ].map((res, i) => (
-              <div key={i} className="bg-white border border-slate-100 rounded-[2.5rem] p-10 shadow-sm hover:shadow-xl transition-all flex flex-col items-center text-center group cursor-pointer">
-                <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-slate-900 transition-all">
-                  <res.icon className={`w-7 h-7 ${res.color} group-hover:text-white transition-colors`} />
+            {/* Primary Assets */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[
+                { title: "GOOGLE DRIVE ASSETS", desc: "TODA TU DOCUMENTACIÓN", icon: Cloud, color: "text-blue-500", url: "#" },
+                { title: "CENTRO DE SOPORTE", desc: "CONSULTAS DIRECTAS", icon: Zap, color: "text-blue-400", url: "#" },
+                { title: "MATERIAL DE MARCA", desc: "ACTIVOS COMPARTIDOS", icon: Link2, color: "text-emerald-500", url: "#" },
+                { title: "SOPs DE EJECUCIÓN", desc: "MANUALES DE PASO A PASO", icon: Rocket, color: "text-slate-900", url: "#" },
+              ].map((res, i) => (
+                <div key={i} className="bg-white border border-slate-100 rounded-[2.5rem] p-10 shadow-sm hover:shadow-xl transition-all flex flex-col items-center text-center group cursor-pointer">
+                  <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-slate-900 transition-all">
+                    <res.icon className={`w-7 h-7 ${res.color} group-hover:text-white transition-colors`} />
+                  </div>
+                  <h4 className="font-bold text-slate-900 text-xs mb-1 uppercase tracking-widest">{res.title}</h4>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{res.desc}</p>
                 </div>
-                <h4 className="font-bold text-slate-900 text-xs mb-1 uppercase tracking-widest">{res.title}</h4>
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{res.desc}</p>
+              ))}
+            </div>
+
+            {/* Dynamic Project Resources */}
+            {project?.externalResources && project.externalResources.length > 0 && (
+              <div className="space-y-6">
+                <div className="flex items-center gap-4">
+                   <h3 className="font-display font-bold text-xl italic text-slate-900">Activos del Proyecto</h3>
+                   <div className="h-px flex-1 bg-slate-100" />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {project.externalResources.map((resource, i) => (
+                    <a 
+                      key={i}
+                      href={resource.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-white border border-slate-100 p-6 rounded-[2rem] hover:shadow-lg transition-all flex items-center justify-between group"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-slate-900 group-hover:text-blue-400 transition-all">
+                          <Link2 className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-900 text-sm">{resource.title}</p>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{resource.resourceType || "Recurso Externo"}</p>
+                        </div>
+                      </div>
+                      <ExternalLink className="w-4 h-4 text-slate-200 group-hover:text-slate-900 transition-colors" />
+                    </a>
+                  ))}
+                </div>
               </div>
-            ))}
+            )}
           </motion.div>
         )}
       </main>

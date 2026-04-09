@@ -95,8 +95,12 @@ export default function Sidebar() {
         {/* User Mini Profile - Premium */}
         <div className="p-8 border-t border-slate-50 bg-slate-50/30">
           <div className="flex items-center gap-4 px-2">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-slate-200 to-slate-100 border border-white shadow-sm flex items-center justify-center text-slate-400 font-bold uppercase">
-                {userName.substring(0, 2)}
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-slate-200 to-slate-100 border border-white shadow-sm flex items-center justify-center text-slate-400 font-bold uppercase overflow-hidden">
+                {session?.user?.image ? (
+                  <img src={session.user.image} alt={userName} className="w-full h-full object-cover" />
+                ) : (
+                  userName.substring(0, 2)
+                )}
             </div>
             <div className="flex flex-col">
               <span className="text-xs font-bold text-slate-900 mb-0.5">{userName}</span>
